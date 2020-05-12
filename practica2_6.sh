@@ -1,27 +1,40 @@
 #!/bin/bash
 # Alejandro Adell Pina 735061
 
-nBin=$(find $HOME -type d -name "*bin???" | wc -l) #numero directorios con nombre *bin???
+Bin=$(find $HOME -maxdepth 1  -type d -name "*bin???") #numero directorios con nombre *bin???
+date=""
+directorio=""
 
-if [ $nBin == 0 ]
+if [ -z $Bin ] #true si string vacio
 then
-	dBin=$(mktemp -d $HOME/binXXX)   #crea directorio temporal
-	echo "Se ha creado el directorio $dBin"
+	directorio=$(mktemp -d $HOME/binXXX)   #crea directorio temporal
+	echo "Se ha creado el directorio $directorio"
 else
-	dBinB=$(ls -lht $HOME | grep bin[a-zA-Z0-9] | tail -n 1 |cut -d " " -f 12) #lht da formato y ordena por tiempo modificacion 
-	dBin="$HOME/$dBinB"
+	for i in $Bin
+	do
+		if [ -z $directorio ] # para asignar el primero
+		then
+			directorio=$i
+			date=$( stat -c %Y $i ) #Saca fecha ultima modificacion
+
+		elif [$date -gt $( stat -c %Y $i )]	 #Si la fecha es posterior
+		then
+			date=$( stat -c %Y $i)
+			directorio=$i
+		fi
+	done
 fi
 
 copias=0
-echo "Directorio destino de copia: $dBin"
+echo "Directorio destino de copia: $directorio"
 
 for archivo in ./*
 do
-	if [ -x "$archivo" -a -f "$archivo" ] #si es archivo ejecutable
+	if [ -x "$archivo" ] && [ -f "$archivo" ] #si es archivo ejecutable
 	then
-		cp "$archivo" "$dBin"
+		cp "$archivo" "$directorio"
 		let "copias+=1"
-		echo "$archivo ha sido copiado a $dBin"
+		echo "$archivo ha sido copiado a $directorio"
 	fi
 done
 
